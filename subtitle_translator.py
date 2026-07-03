@@ -334,8 +334,20 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
     # 4. Copy all streams by default
     cmd += ["-c", "copy"]
 
-    # 5. The translated track is the last subtitle; compute its index
-    num_subs = sum(1 for s in info.get("streams", []) if s.get("codec_type") == "subtitle" and (s["index"] != src_idx or KEEP_ORIGINAL_SUBTITLES) and s.get("tags", {}).get("language", "").lower() != TARGET_LANG)
+    # 5. The translated track is the last subtitle; compute its index among
+    #    subtitle tracks that will actually be mapped (exclude source track if
+    #    KEEP_ORIGINAL_SUBTITLES is False and skip any existing target track).
+    num_subs = 0
+    for s in info.get("streams", []):
+        if s.get("codec_type") != "subtitle":
+            continue
+        idx = s["index"]
+        if idx == src_idx and not KEEP_ORIGINAL_SUBTITLES:
+            continue
+        tags = s.get("tags", {})
+        if tags.get("language", "").lower() == TARGET_LANG:
+            continue
+        num_subs += 1
     target_sub_idx = num_subs
 
     # 6. Metadata for the translated subtitle track
