@@ -62,6 +62,7 @@ All user-configurable settings are at the top of `subtitle_translator.py`:
 | `TARGET_PREFIX` | Prefix added to the output filename when `OUTPUT_DIR` is empty. | `"FR"` |
 | `SOURCE_LANGS` | Tuple of source language codes to look for. | `("eng", "en")` |
 | `SUBTITLE_OUTPUT_CODEC` | Codec for the generated subtitle track. MKV: `ass`; MP4: `mov_text`. | `"ass"` |
+| `KEEP_ORIGINAL_SUBTITLES` | Set to `False` to drop the source subtitle track from the output. Default is `True` (preserve). | `True` |
 
 ## Output modes
 

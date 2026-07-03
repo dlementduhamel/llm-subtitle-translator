@@ -55,6 +55,10 @@ SOURCE_LANGS = ("eng", "en")
 # MP4  : "mov_text" is the only subtitle codec supported by MP4.
 SUBTITLE_OUTPUT_CODEC = "ass"
 
+# Set to False to drop the source subtitle track from the output file.
+# Default is True to preserve existing subtitle tracks.
+KEEP_ORIGINAL_SUBTITLES = True
+
 # ==================== UTILITIES ====================
 
 def run(cmd, check=True, capture=True, timeout=300):
@@ -313,7 +317,7 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
     #    the source track and any existing target-language track.
     for s in info.get("streams", []):
         idx = s["index"]
-        if idx == src_idx:
+        if idx == src_idx and not KEEP_ORIGINAL_SUBTITLES:
             continue
         tags = s.get("tags", {})
         if s.get("codec_type") == "subtitle" and tags.get("language", "").lower() == TARGET_LANG:
@@ -331,7 +335,7 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
     cmd += ["-c", "copy"]
 
     # 5. The translated track is the last subtitle; compute its index
-    num_subs = sum(1 for s in info.get("streams", []) if s.get("codec_type") == "subtitle" and s["index"] != src_idx and s.get("tags", {}).get("language", "").lower() != TARGET_LANG)
+    num_subs = sum(1 for s in info.get("streams", []) if s.get("codec_type") == "subtitle" and (s["index"] != src_idx or KEEP_ORIGINAL_SUBTITLES) and s.get("tags", {}).get("language", "").lower() != TARGET_LANG)
     target_sub_idx = num_subs
 
     # 6. Metadata for the translated subtitle track
