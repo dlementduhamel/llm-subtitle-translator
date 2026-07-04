@@ -462,7 +462,7 @@ def process_file(input_path, output_path):
         cmd = [input_path if token == "__INPUT__" else token for token in cmd]
         cmd = [temp_translated_ass if token == "__SUB__" else token for token in cmd]
 
-        temp_output = os.path.join(tempdir, f"output.{container_ext}")
+        temp_output = os.path.join(tmpdir, f"output.{container_ext}")
         cmd = [temp_output if token == "__OUTPUT__" else token for token in cmd]
 
         # Ensure no placeholders remain
