@@ -454,13 +454,16 @@ def process_file(input_path, output_path):
             print(f"[X] SRT to ASS conversion failed: {e}")
             return False
 
-        # 4. Remux
+        # 4. Remux to a temporary local file first, then copy to the final destination.
+        # This avoids SMB/network I/O errors during ffmpeg muxing.
         container_ext = get_container_extension(output_path)
         print(f"[*] Remuxing ({container_ext})...")
         cmd = remap_subtitles(info, 1, container_ext)  # 1 = translated subtitle file (second ffmpeg input)
         cmd = [input_path if token == "__INPUT__" else token for token in cmd]
         cmd = [temp_translated_ass if token == "__SUB__" else token for token in cmd]
-        cmd = [output_path if token == "__OUTPUT__" else token for token in cmd]
+
+        temp_output = os.path.join(tempdir, f"output.{container_ext}")
+        cmd = [temp_output if token == "__OUTPUT__" else token for token in cmd]
 
         # Ensure no placeholders remain
         if any(isinstance(x, str) and x.startswith("__") for x in cmd):
@@ -469,8 +472,6 @@ def process_file(input_path, output_path):
 
         try:
             run(cmd, check=True, timeout=600)
-            print(f"[SUCCESS] File created: {output_path}")
-            return True
         except subprocess.CalledProcessError as e:
             print(f"[X] Remuxing failed: {e}")
             if e.stderr:
@@ -480,6 +481,24 @@ def process_file(input_path, output_path):
         except Exception as e:
             print(f"[X] Remuxing failed: {e}")
             return False
+
+        # Copy the completed file to the final destination with retries.
+        print(f"[*] Copying to {output_path}...")
+        copied = False
+        for attempt in range(3):
+            try:
+                shutil.copy2(temp_output, output_path)
+                copied = True
+                break
+            except Exception as e:
+                print(f"    [!] Copy attempt {attempt + 1}/3 failed: {e}")
+                time.sleep(2)
+        if not copied:
+            print(f"[X] Failed to copy output to {output_path}")
+            return False
+
+        print(f"[SUCCESS] File created: {output_path}")
+        return True
 
     finally:
         # Cleanup temporary files
