@@ -20,7 +20,7 @@ LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
 # Replace with your real API token if LM Studio requires authentication.
 # Leave empty ("") if the server does not require a token.
 API_TOKEN = ""
-
+# ASE_DIR = "/path/to/your/videos"
 BASE_DIR = "/path/to/your/videos"
 # Optional output directory. Leave empty to write files next to the inputs in BASE_DIR.
 # If set, files keep their original names (no prefix needed). Otherwise TARGET_PREFIX is required.
@@ -36,15 +36,17 @@ CHUNK_ENTRIES = 30
 MAX_RETRIES = 3
 
 # Target language for the generated subtitle track (ISO 639-2 / 639-1 code).
-# Examples: "fra" (French), "eng" (English), "ita" (Italian), "deu" (German),
+# Examples: "fra" or "fre" (French), "eng" (English), "ita" (Italian), "deu" (German),
 #           "spa" (Spanish), "por" (Portuguese), "pol" (Polish), "jpn" (Japanese).
 TARGET_LANG = "fra"
+# Additional language codes that should be considered equivalent to the target language
+# (e.g. "fre" is ISO 639-2/B French). The first matched track is treated as a target track.
+TARGET_LANG_ALIASES = ("fre",)
 TARGET_TITLE = "Français"
 
-# Prefix used for the output filename when OUTPUT_DIR is not set.
-# Falls back to TARGET_LANG if not provided.
+# Prefix used for the output filename. Falls back to TARGET_LANG if not provided.
 # Examples: "FR", "FRA", "ENG", "DE", "VF", etc.
-TARGET_PREFIX = "FR"
+TARGET_PREFIX = ""
 
 # Source language(s) to look for in the input file (ISO 639-2 / 639-1 codes).
 # The first matching subtitle track will be translated.
@@ -54,10 +56,6 @@ SOURCE_LANGS = ("eng", "en")
 # MKV  : "ass" works best with VLC for accented characters.
 # MP4  : "mov_text" is the only subtitle codec supported by MP4.
 SUBTITLE_OUTPUT_CODEC = "ass"
-
-# Set to False to drop the source subtitle track from the output file.
-# Default is True to preserve existing subtitle tracks.
-KEEP_ORIGINAL_SUBTITLES = True
 
 # ==================== UTILITIES ====================
 
@@ -96,13 +94,19 @@ def normalize_path(path):
     return os.path.abspath(path)
 
 
+def is_target_language(lang):
+    """Return True if lang matches the target language or one of its aliases."""
+    lang = lang.lower()
+    return lang == TARGET_LANG or lang in TARGET_LANG_ALIASES
+
+
 def has_target_language_subtitle(info):
     """Check if the file already contains a subtitle track in the target language."""
     for stream in info.get("streams", []):
         if stream.get("codec_type") == "subtitle":
             tags = stream.get("tags", {})
             lang = tags.get("language", "").lower()
-            if lang == TARGET_LANG:
+            if is_target_language(lang):
                 return True
     return False
 
@@ -120,7 +124,7 @@ def find_source_subtitle_index(info):
         if stream.get("codec_type") == "subtitle":
             tags = stream.get("tags", {})
             lang = tags.get("language", "").lower()
-            if lang != TARGET_LANG:
+            if not is_target_language(lang):
                 return stream["index"]
     return None
 
@@ -320,7 +324,7 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
         if idx == src_idx and not KEEP_ORIGINAL_SUBTITLES:
             continue
         tags = s.get("tags", {})
-        if s.get("codec_type") == "subtitle" and tags.get("language", "").lower() == TARGET_LANG:
+        if s.get("codec_type") == "subtitle" and is_target_language(tags.get("language", "")):
             continue
         codec_type = s.get("codec_type")
         if codec_type in ("video", "audio", "subtitle"):
@@ -345,7 +349,7 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
         if idx == src_idx and not KEEP_ORIGINAL_SUBTITLES:
             continue
         tags = s.get("tags", {})
-        if tags.get("language", "").lower() == TARGET_LANG:
+        if is_target_language(tags.get("language", "")):
             continue
         num_subs += 1
     target_sub_idx = num_subs
@@ -370,6 +374,10 @@ def remap_subtitles(info, new_sub_index=1, container_ext="mkv"):
 
 def process_file(input_path, output_path):
     print(f"\n>>> PROCESSING: {os.path.basename(input_path)}")
+
+    if os.path.exists(output_path):
+        print(f"[SKIP] Output file already exists: {output_path}")
+        return False
 
     info = get_stream_info(input_path)
     if not info:

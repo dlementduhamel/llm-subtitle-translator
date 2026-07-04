@@ -58,6 +58,7 @@ All user-configurable settings are at the top of `subtitle_translator.py`:
 | `CHUNK_ENTRIES` | Number of subtitle entries sent per LLM request. | `30` |
 | `MAX_RETRIES` | Retries per chunk if the LLM returns malformed JSON. | `3` |
 | `TARGET_LANG` | ISO 639-2/639-1 language code for the generated subtitle track. | `"fra"` |
+| `TARGET_LANG_ALIASES` | Tuple of equivalent language codes (e.g. `fre` for French ISO 639-2/B). Treated as target language. | `("fre",)` |
 | `TARGET_TITLE` | Human-readable title used in the prompt and metadata. | `"Français"` |
 | `TARGET_PREFIX` | Prefix added to the output filename when `OUTPUT_DIR` is empty. | `"FR"` |
 | `SOURCE_LANGS` | Tuple of source language codes to look for. | `("eng", "en")` |
