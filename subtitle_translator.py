@@ -14,6 +14,7 @@ import time
 import tempfile
 import subprocess
 import requests
+import shutil
 
 # ==================== CONFIGURATION ====================
 LM_STUDIO_URL = "http://localhost:1234/v1/chat/completions"
@@ -384,8 +385,10 @@ def process_file(input_path, output_path):
         return False
 
     if has_target_language_subtitle(info):
-        print("[SKIP] Target-language subtitle track already present.")
-        return False
+        print("[COPY] Target-language subtitle track already present.")
+        shutil.copy2(input_path, output_path)
+        print(f"[OK] Copied to {output_path}")
+        return True
 
     src_index = find_source_subtitle_index(info)
     if src_index is None:
