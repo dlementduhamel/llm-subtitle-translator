@@ -58,6 +58,10 @@ SOURCE_LANGS = ("eng", "en")
 # MP4  : "mov_text" is the only subtitle codec supported by MP4.
 SUBTITLE_OUTPUT_CODEC = "ass"
 
+# Set to False to drop the source subtitle track from the output file.
+# Default is True to preserve existing subtitle tracks.
+KEEP_ORIGINAL_SUBTITLES = True
+
 # ==================== UTILITIES ====================
 
 def run(cmd, check=True, capture=True, timeout=300):
